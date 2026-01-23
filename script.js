@@ -5,6 +5,15 @@ function log(msg) {
     document.getElementById("log").textContent += msg + "\n";
 }
 
+function getMusicFilesFromDirectory(fileList) {
+    return Array.from(fileList)
+        .map(f => f.webkitRelativePath || f.name)
+        .filter(name =>
+            SUPPORTED_EXTS.some(ext => name.toLowerCase().endsWith(ext))
+        );
+}
+  
+
 function normalise(text) {
     return text
         .toLowerCase()
@@ -42,23 +51,17 @@ function findBestMatch(track, files) {
 
 function generate() {
     const csvFile = document.getElementById("csvFile").files[0];
-    const musicList = document.getElementById("musicList").files[0];
+    const musicFilesInput = document.getElementById("musicDir").files;
     const rockboxRoot = document.getElementById("rockboxRoot").value;
 
-    if (!csvFile || !musicList) {
-        alert("Upload both CSV and music list.");
+    if (!csvFile || !musicFilesInput.length) {
+        alert("Upload CSV and select a music directory.");
         return;
     }
 
-    Promise.all([
-        csvFile.text(),
-        musicList.text()
-    ]).then(([csvText, musicText]) => {
-        const musicFiles = musicText
-            .split("\n")
-            .map(x => x.trim())
-            .filter(x => SUPPORTED_EXTS.some(ext => x.endsWith(ext)));
+    const musicFiles = getMusicFilesFromDirectory(musicFilesInput);
 
+    csvFile.text().then(csvText => {
         const parsed = Papa.parse(csvText, { header: true });
         let output = "#EXTM3U\n";
         let matched = 0;
@@ -85,3 +88,4 @@ function generate() {
         a.click();
     });
 }
+  
