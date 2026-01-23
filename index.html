@@ -10,11 +10,22 @@
 <body>
     <h1>CSV → Rockbox M3U8</h1>
 
-    <label>CSV Playlist:</label><br>
+    <label>Playlist CSV from <a href="https://exportify.net/">Exportify</a>:</label><br>
     <input type="file" id="csvFile" accept=".csv"><br><br>
 
+    <div id="dirSupportWarning" style="color: #c00; display: none;">
+        Your browser does not support directory selection.
+        Please upload a text file containing music filenames instead.
+    </div>
+    
     <label>Select Music Folder:</label><br>
-    <input type="file" id="musicDir" webkitdirectory multiple><br><br>    
+    <input type="file" id="musicDir" webkitdirectory multiple><br><br>
+    
+    <label>OR upload music filename list (.txt):</label><br>
+    <input type="file" id="musicList" accept=".txt"><br><br>
+    
+    <div id="progress"></div>
+      
 
     <label>Rockbox Root:</label><br>
     <input type="text" id="rockboxRoot" value="/Music"><br><br>

@@ -1,5 +1,14 @@
 const SUPPORTED_EXTS = [".mp3", ".flac", ".wav", ".m4a", ".ogg"];
 const MIN_SIMILARITY = 0.60;
+const supportsDirectoryUpload =
+    "webkitdirectory" in document.createElement("input");
+
+window.onload = () => {
+    if (!supportsDirectoryUpload) {
+        document.getElementById("musicDir").style.display = "none";
+        document.getElementById("dirSupportWarning").style.display = "block";
+    }
+};
 
 function log(msg) {
     document.getElementById("log").textContent += msg + "\n";
@@ -32,60 +41,121 @@ function similarity(a, b) {
     return matches / len;
 }
 
-function findBestMatch(track, files) {
-    const key = normalise(track);
-    let bestScore = 0;
-    let bestFile = null;
+function buildMusicIndex(filePaths) {
+    const index = {};
 
-    for (const file of files) {
-        const name = normalise(file.replace(/\.[^.]+$/, ""));
-        const score = similarity(key, name);
+    for (const path of filePaths) {
+        const base = path.replace(/^.*[\\/]/, "").replace(/\.[^.]+$/, "");
+        const norm = normalise(base);
+        const key = norm[0] || "_";
+
+        if (!index[key]) index[key] = [];
+        index[key].push({ path, norm });
+    }
+
+    return index;
+}
+  
+
+function findBestMatch(track, index) {
+    const key = normalise(track);
+    const bucketKey = key[0] || "_";
+
+    const candidates =
+        index[bucketKey] ||
+        Object.values(index).flat(); // fallback
+
+    let bestScore = 0;
+    let bestPath = null;
+
+    for (const item of candidates) {
+        const score = similarity(key, item.norm);
         if (score > bestScore) {
             bestScore = score;
-            bestFile = file;
+            bestPath = item.path;
         }
     }
 
-    return bestScore >= MIN_SIMILARITY ? bestFile : null;
+    return bestScore >= MIN_SIMILARITY ? bestPath : null;
 }
 
-function generate() {
+function updateProgress(done, total) {
+    const percent = Math.floor((done / total) * 100);
+    document.getElementById("progress").textContent =
+        `Processing… ${percent}% (${done}/${total})`;
+}
+  
+
+async function generate() {
     const csvFile = document.getElementById("csvFile").files[0];
-    const musicFilesInput = document.getElementById("musicDir").files;
+    const dirFiles = document.getElementById("musicDir").files;
+    const txtFile = document.getElementById("musicList").files[0];
     const rockboxRoot = document.getElementById("rockboxRoot").value;
 
-    if (!csvFile || !musicFilesInput.length) {
-        alert("Upload CSV and select a music directory.");
+    if (!csvFile) {
+        alert("Please upload a CSV playlist.");
         return;
     }
 
-    const musicFiles = getMusicFilesFromDirectory(musicFilesInput);
+    let musicPaths = [];
 
-    csvFile.text().then(csvText => {
-        const parsed = Papa.parse(csvText, { header: true });
-        let output = "#EXTM3U\n";
-        let matched = 0;
+    if (supportsDirectoryUpload && dirFiles.length) {
+        musicPaths = Array.from(dirFiles)
+            .map(f => f.webkitRelativePath)
+            .filter(p =>
+                SUPPORTED_EXTS.some(ext => p.toLowerCase().endsWith(ext))
+            );
+    } else if (txtFile) {
+        const text = await txtFile.text();
+        musicPaths = text
+            .split("\n")
+            .map(l => l.trim())
+            .filter(l =>
+                SUPPORTED_EXTS.some(ext => l.toLowerCase().endsWith(ext))
+            );
+    } else {
+        alert("Please select a music folder or upload a filename list.");
+        return;
+    }
 
-        parsed.data.forEach(row => {
-            const track = row["Track Name"];
-            if (!track) return;
+    log(`Indexing ${musicPaths.length} music files…`);
+    const musicIndex = buildMusicIndex(musicPaths);
 
-            const match = findBestMatch(track, musicFiles);
-            if (match) {
-                output += `${rockboxRoot}/${match}\n`;
-                matched++;
-            } else {
-                log(`No match: ${track}`);
-            }
-        });
+    const csvText = await csvFile.text();
+    const parsed = Papa.parse(csvText, { header: true });
 
-        log(`Matched ${matched}/${parsed.data.length}`);
+    let output = "#EXTM3U\n";
+    let matched = 0;
+    let processed = 0;
 
-        const blob = new Blob([output], { type: "audio/x-mpegurl" });
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = "playlist.m3u8";
-        a.click();
-    });
+    for (const row of parsed.data) {
+        const track = row["Track Name"];
+        if (!track) continue;
+
+        processed++;
+        const match = findBestMatch(track, musicIndex);
+
+        if (match) {
+            output += `${rockboxRoot}/${match}\n`;
+            matched++;
+        } else {
+            log(`No match: ${track}`);
+        }
+
+        if (processed % 5 === 0) {
+            updateProgress(processed, parsed.data.length);
+            await new Promise(r => setTimeout(r, 0)); // UI breathe
+        }
+    }
+
+    updateProgress(parsed.data.length, parsed.data.length);
+    log(`Matched ${matched}/${parsed.data.length}`);
+
+    const blob = new Blob([output], { type: "audio/x-mpegurl" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "playlist.m3u8";
+    a.click();
 }
+  
   
