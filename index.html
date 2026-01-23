@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>CSV → Rockbox M3U8</title>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+
+<body>
+    <h1>CSV → Rockbox M3U8</h1>
+
+    <label>CSV Playlist:</label><br>
+    <input type="file" id="csvFile" accept=".csv"><br><br>
+
+    <label>Music filenames (txt, one per line):</label><br>
+    <input type="file" id="musicList" accept=".txt"><br><br>
+
+    <label>Rockbox Root:</label><br>
+    <input type="text" id="rockboxRoot" value="/Music"><br><br>
+
+    <button onclick="generate()">Generate M3U8</button>
+
+    <pre id="log"></pre>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
