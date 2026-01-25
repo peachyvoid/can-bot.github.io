@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="favicon_io/favicon-16x16.png">
     <link rel="manifest" href="favicon_io/site.webmanifest">
     <meta charset="UTF-8" />
-    <title><a href="https://github.com/Can-Bot/can-bot.github.io">CSV → M3U8</a></title>
+    <title>CSV → M3U8</title>
 
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
@@ -55,6 +55,16 @@
         header small {
             color: var(--muted);
             font-weight: 500;
+        }
+
+        a:link {
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        a:visited {
+            color: var(--text);
+            text-decoration: none;
         }
 
         .card {
@@ -168,7 +178,7 @@
     <div class="container">
 
         <header>
-            <h1>CSV → M3U8</h1>
+            <h1><span style="cursor:help"><a href="https://github.com/Can-Bot/can-bot.github.io">CSV → M3U8</a></span></h1>
             <small>v0.9.1-beta · Spotify → Rockbox</small>
         </header>
 
@@ -208,7 +218,7 @@
 
         <div class="card">
             <h2>4. Generate</h2>
-            <button onclick="generate()">Generate M3U8 Playlist</button>
+            <button onclick="generate()" style="cursor:progress"><span>Generate M3U8 Playlist</span></button>
             <pre id="log"></pre>
         </div>
 
