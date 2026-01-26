@@ -209,18 +209,18 @@
 
         <header>
             <h1><a href="https://github.com/Can-Bot/can-bot.github.io" style="cursor:help">CSV → M3U8</a></h1>
-            <small>v0.9.3-beta · Spotify → Rockbox</small>
+            <small>v0.9.5-beta · .m3u8 Generator</small>
         </header>
 
         <div id="errorBanner" class="error-banner hidden">
             <span id="errorMessage"></span>
-            <button id="errorClose" aria-label="Dismiss error">×</button>  
+            <button id="errorClose" aria-label="Dismiss error">x</button>  
         </div>
 
         <div class="card">
             <h2>1. Playlist Source</h2>
             <label>
-                Spotify playlist CSV (from <a href="https://exportify.net/" target="_blank">Exportify</a>)
+                Playlist CSV (e.g. from <a href="https://exportify.net/" target="_blank">Exportify</a>)
             </label>
             <input type="file" id="csvFile" accept=".csv">
         </div>
@@ -238,7 +238,7 @@
 
             <p class="muted">OR</p>
 
-            <label>Upload filename list (.txt)</label>
+            <label>Upload track list (.txt)</label>
             <input type="file" id="musicList" accept=".txt">
 
             <div id="progress"></div>
@@ -246,7 +246,7 @@
 
         <div class="card">
             <h2>3. Output Settings</h2>
-            <label>Rockbox root directory</label>
+            <label>Playlist root directory</label>
             <input type="text" id="rockboxRoot" value="/Music">
             <p class="muted">Used to generate relative paths inside the playlist.</p>
         </div>
