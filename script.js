@@ -49,6 +49,9 @@ document.getElementById("musicList").addEventListener("change", async e => {
 });
 
 
+document.getElementById("errorClose").onclick = clearError;
+
+
 /**
  * Appends a log message to the on-page log output.
  *
@@ -139,6 +142,23 @@ function inferRockboxRootFromFiles(files) {
     return null;
 }
 
+function showError(message) {
+    const banner = document.getElementById("errorBanner");
+    const msg = document.getElementById("errorMessage");
+
+    msg.textContent = message;
+    banner.classList.remove("hidden");
+
+    const rect = banner.getBoundingClientRect();
+    if (rect.top < 0 || rect.bottom > window.innerHeight) {
+        banner.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+}
+
+function clearError() {
+    document.getElementById("errorBanner").classList.add("hidden");
+}
+
 
 /**
  * Updates the progress display with a percentage and counter.
@@ -176,7 +196,7 @@ async function generate() {
     const rockboxRoot = document.getElementById("rockboxRoot").value;
 
     if (!csvFile) {
-        alert("Please upload a CSV playlist.");
+        showError("Please upload a CSV playlist.");
         return;
     }
 
@@ -196,7 +216,7 @@ async function generate() {
                 SUPPORTED_EXTS.some(ext => l.toLowerCase().endsWith(ext))
             );
     } else {
-        alert("Please select a music folder or upload a filename list.");
+        showError("Please select a music folder or upload a filename list.");
         return;
     }
 
@@ -206,65 +226,81 @@ async function generate() {
     if (inferredRoot && !rootInput.value) {
         rootInput.value = inferredRoot;
     }
+    try{
+        log(`Indexing ${musicPaths.length} music files…`);
+        const musicIndex = await buildMusicIndex(musicPaths);
 
-    log(`Indexing ${musicPaths.length} music files…`);
-    const musicIndex = await buildMusicIndex(musicPaths);
+        const csvText = await csvFile.text();
+        const parsed = Papa.parse(csvText, { header: true });
 
-    const csvText = await csvFile.text();
-    const parsed = Papa.parse(csvText, { header: true });
+        const validRows = parsed.data.filter(r => r["Track Name"]);
+        const trackNames = validRows.map(r => r["Track Name"]);
 
-    const validRows = parsed.data.filter(r => r["Track Name"]);
-    const trackNames = validRows.map(r => r["Track Name"]);
+        //log("Starting worker...")
+        const worker = new Worker("matcher.worker.js");
 
-    //log("Starting worker...")
-    const worker = new Worker("matcher.worker.js");
-
-    worker.postMessage({
-        tracks: trackNames,
-        index: musicIndex
-    });
-
-    worker.onmessage = e => {
-        if (e.data.progress !== undefined) {
-            updateProgress(e.data.progress, trackNames.length);
-            return;
-        }
-
-        if (e.data.done) {
-            const matches = e.data.results;
-            let output = "#EXTM3U\n";
-            let matched = 0;
-
-            matches.forEach((match, i) => {
-                const track = trackNames[i];
-                //log(`Finding track ${track}`)
-
-                if (match) {
-                    output += `${rockboxRoot}/${match.path}\n`;
-                    matched++;
-
-                    log(
-                        match.level === "high"
-                            ? `✔ ${track} (${match.score.toFixed(2)})`
-                            : `⚠ ${track} (${match.score.toFixed(2)})`
-                    );
-                } else {
-                    log(`✘ No match: ${track}`);
-                }
-            });
-
-            updateProgress(trackNames.length, trackNames.length);
-            log(`Matched ${matched}/${trackNames.length}.`);
-
-            const blob = new Blob([output], { type: "audio/x-mpegurl" });
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = csvFile.name.replace(/\.[^.]+$/, "") + ".m3u8";
-            a.click();
-
+        worker.onerror = e => {
+            console.error("Worker error:", e);
+            showError("Matching failed due to a background worker error.");
             worker.terminate();
-        }
-    };
+        };
+
+        worker.onmessageerror = () => {
+            showError("Received malformed data from matching worker.");
+            worker.terminate();
+        };        
+
+        worker.postMessage({
+            tracks: trackNames,
+            index: musicIndex
+        });
+
+        worker.onmessage = e => {
+            if (e.data.progress !== undefined) {
+                updateProgress(e.data.progress, trackNames.length);
+                return;
+            }
+
+            if (e.data.done) {
+                const matches = e.data.results;
+                let output = "#EXTM3U\n";
+                let matched = 0;
+
+                matches.forEach((match, i) => {
+                    const track = trackNames[i];
+                    //log(`Finding track ${track}`)
+
+                    if (match) {
+                        output += `${rockboxRoot}/${match.path}\n`;
+                        matched++;
+
+                        log(
+                            match.level === "high"
+                                ? `✔ ${track} (${match.score.toFixed(2)})`
+                                : `⚠ ${track} (${match.score.toFixed(2)})`
+                        );
+                    } else {
+                        log(`✘ No match: ${track}`);
+                    }
+                });
+
+                updateProgress(trackNames.length, trackNames.length);
+                log(`Matched ${matched}/${trackNames.length}.`);
+
+                const blob = new Blob([output], { type: "audio/x-mpegurl" });
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = csvFile.name.replace(/\.[^.]+$/, "") + ".m3u8";
+                a.click();
+
+                worker.terminate();
+            }
+        };
+    } catch (err) {
+        console.error(err);
+        showError("Something went wrong while generating the playlist.");
+    }
+    
 }
   
   
