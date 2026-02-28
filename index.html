@@ -10,6 +10,7 @@
     <title>CSV → M3U8</title>
 
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.3/dist/jsmediatags.min.js"></script>
 
     <style>
         :root {
@@ -218,12 +219,30 @@
         </div>
 
         <div class="card">
-            <h2>1. Playlist Source</h2>
-            <p class="muted">A CSV file containing the track names to be linked. Track names must be on the 2nd column.</p>
-            <label>
-                Playlist CSV (e.g. from <a href="https://exportify.net/" target="_blank">Exportify</a>)
-            </label>
-            <input type="file" id="csvFile" accept=".csv">
+            <label><h1>Playlist source</h1></label>
+            <div style="display:flex; gap:12px; margin-bottom:12px;">
+                <label>
+                    <input type="radio" name="mode" value="csv" checked>
+                    CSV playlist
+                </label>
+                <label>
+                    <input type="radio" name="mode" value="dir">
+                    Directory playlist
+                </label>
+            </div>
+            <div id="csvMode">
+                <label>
+                    Playlist CSV (e.g. from <a href="https://exportify.net/" target="_blank">Exportify</a>)
+                </label>
+                <input type="file" id="csvFile" accept=".csv">
+            </div>
+            <div id="dirMode" style="display:none;">
+                <label>Select playlist directory</label>
+                <input type="file" id="playlistDir" webkitdirectory multiple>
+                <p class="muted">
+                    Playlist will contain all supported audio files in this directory.
+                </p>
+            </div>
         </div>
 
         <div class="card">
@@ -250,7 +269,6 @@
             <p class="muted">In case the generated playlist will be used on a different device and track files will be located in a different folder.</p>
             <label>Playlist root directory</label>
             <input type="text" id="rockboxRoot" value="/Music">
-            <p class="muted">Used to generate relative paths inside the playlist.</p>
         </div>
 
         <div class="card">
@@ -267,7 +285,6 @@
     </div>
 
     <script src="matcher.utils.js"></script>
-    <script src="matcher.worker.js"></script>
     <script src="script.js"></script>
 </body>
 

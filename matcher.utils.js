@@ -36,3 +36,22 @@ function normalise(text) {
     }
     return text.replace(/\s+/g, " ").trim();
 }
+
+function scanID3(file) {
+    return new Promise((resolve, reject) => {
+        jsmediatags.read(file, {
+            onSuccess: function (tag) {
+                const song = new Song(file.name);
+                song.title = tag.tags.title || 'Unknown';
+                song.artist = tag.tags.artist || 'Unknown';
+                song.album = tag.tags.album || 'Unknown';
+                song.genre = tag.tags.genre || 'Unknown';
+                resolve(song);
+            },
+            onError: function (error) {
+                console.error('Error reading metadata:', error);
+                reject(error);
+            }
+        });
+    });
+}
