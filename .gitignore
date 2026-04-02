@@ -218,4 +218,5 @@ _site/
 vendor/
 
 # Ignore VSCode Workspace stuff
+.vscode/
 auto_m3u8.code-workspace

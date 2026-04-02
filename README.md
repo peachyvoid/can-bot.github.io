@@ -1,58 +1,64 @@
-# Rockbox Playlist Generator (Beta)
+# M3U8 Maker
 
-A browser-based tool that converts Spotify-style CSV playlists into
-Rockbox-compatible `.m3u8` playlists using fuzzy filename matching.
+A browser-based .m3u8 playlist generator built with **React + Vite**.
 
-Runs entirely client-side. No uploads (kinda). No tracking.
+All processing happens locally — no data is uploaded to any server.
 
-## Features
+## Project Structure
 
-- CSV → M3U8 playlist generation
-- Folder-based or text-list music input
-- Fast fuzzy matching with confidence scoring
-- Web Worker–powered matching (non-blocking UI)
-- Rockbox-compatible absolute paths
-- GitHub Pages deployment
+```
+src/
+├── components/
+│   ├── ErrorBanner.jsx      # Dismissible error notification
+│   ├── PlaylistSource.jsx   # Mode switcher: Spotify / CSV / Directory
+│   ├── MusicLibrary.jsx     # Music folder picker + progress bar
+│   └── GenerateSection.jsx  # Generate button + colourised log output
+├── hooks/
+│   └── useGenerator.js      # All generation logic as a React hook
+├── lib/
+│   ├── matcherUtils.js      # normalise(), STOPWORDS, MIN_SIMILARITY
+│   ├── Song.js              # Audio file model + ID3 tag loading
+│   ├── MDatabase.js         # Batched ingestion + bucket index
+│   ├── Playlist.js          # CSV/Spotify/dir parsing + M3U8 output
+│   └── SpotifyPlaylistFetch.js  # PKCE OAuth + playlist fetch
+├── workers/
+│   └── matcher.worker.js    # Fuzzy matching (runs off the main thread)
+├── styles/
+│   └── index.css
+├── App.jsx
+└── main.jsx
+```
 
-## Supported Formats
+## Getting Started
 
-- `.mp3`
-- `.flac`
-- `.wav`
-- `.m4a`
-- `.ogg`
+```bash
+npm install
+npm run dev
+```
 
-## Usage
+Open [http://localhost:5173](http://localhost:5173).
 
-1. Upload a Spotify CSV playlist
-2. Select your music folder (or upload a text list)
-3. Set Rockbox root (default `/Music`)
-4. Generate and download playlist
+## Building for production
 
-Copy the resulting `.m3u8` file to: `\Playlists\` on your Rockbox device.
+```bash
+npm run build
+npm run preview
+```
 
-## Browser Support
+## Spotify Setup
 
-| Browser | Status |
-|---------|---------|
-| Chrome | Full |
-| Edge | Full |
-| Firefox | ⚠ No folder upload |
-| Safari | ⚠ Limited |
+Replace the `SPOTIFY_CLIENT_ID` constant in `src/App.jsx` with your own
+[Spotify Developer](https://developer.spotify.com/dashboard) app credentials,
+and add your redirect URI (e.g. `http://localhost:5173`) to the app's
+**Redirect URIs** list in the Spotify dashboard.
 
-Unsupported browsers fall back to text-file input.
+## Key architectural changes vs the vanilla build
 
-## Privacy
-
-All processing happens locally in your browser.
-No files are uploaded or stored.
-
-## Known Limitations (Beta)
-
-- Matching is filename-based (no ID3 parsing)
-- Large libraries may take several seconds
-- Non-English titles may require tuning
-
-## License
-
-Apache 2.0
+| Concern | Before | After |
+|---|---|---|
+| Module system | `<script>` tags, globals | ES modules, `import/export` |
+| UI | Vanilla DOM manipulation | React components + hooks |
+| State | Scattered globals | `useState` / `useCallback` in `App` + `useGenerator` hook |
+| Worker import | Hard-coded path string | Vite `?worker` typed import |
+| Normalisation | Duplicated in two files | Single source of truth in `matcherUtils.js` |
+| CSS | Inline `<style>` block | Dedicated `index.css` with component classes |
