@@ -6,8 +6,8 @@ export default defineConfig({
   worker: {
     format: "es",
   },
-  // jsmediatags ships as CJS; tell Vite to pre-bundle it
-  optimizeDeps: {
-    include: ["jsmediatags"],
+  server: {
+    host: "127.0.0.1",
+    port: 8080,
   },
 });
