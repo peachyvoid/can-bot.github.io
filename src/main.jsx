@@ -1,30 +1,42 @@
-import React from "react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/index.css";
 import App from "./App.jsx";
 import { SpotifyPlaylistFetch } from "./lib/SpotifyPlaylistFetch.js";
+import AppConfig from "./AppConfig.js";
+import { runPreflight } from "./lib/preflight.js";
 
-const SPOTIFY_CLIENT_ID = "e96819b4ea994c588fa3f09e9af3a496";
+const preflightErrors = runPreflight(AppConfig);
 
-// Derive the correct redirect URI for both local dev and GitHub Pages.
-// On GitHub Pages the app lives at https://user.github.io/repo-name/
-// so we use the full href minus any query/hash, not just origin.
-const isDev = window.location.hostname === "127.0.0.1";
+if (preflightErrors.length > 0) {
+  // Render a plain error page without React — if something fundamental
+  // is broken we don't want to depend on the React tree being healthy
+  document.getElementById("root").innerHTML = `
+    <div style="font-family: monospace; padding: 2rem; color: #ff6b6b; background: #0f1220; min-height: 100vh;">
+      <h2 style="color: #e6e7ef">⚠ Setup incomplete</h2>
+      ${preflightErrors.map(e => `<p>• ${e}</p>`).join("")}
+    </div>
+  `;
+} else {
+  // Automatically select the correct redirect URI based on whether we are
+  // running locally or deployed to GitHub Pages.
+  const redirectUri =
+    window.location.hostname === "127.0.0.1"
+      ? AppConfig.DEV_URL
+      : AppConfig.GITHUB_PAGES_URL;
 
-const redirectUri = isDev
-  ? "http://127.0.0.1:8080"
-  : "https://can-bot.github.io";
-
-
-// Run synchronously before React mounts so the ?code= param is
-// always caught on the first pass, regardless of React lifecycle.
-const spotifyReady = SpotifyPlaylistFetch.init(SPOTIFY_CLIENT_ID, redirectUri);
-
-spotifyReady.then(() => {
-  createRoot(document.getElementById("root")).render(
-    <StrictMode>
-      <App />
-    </StrictMode>
+  // Initialise Spotify before React mounts so the ?code= redirect param
+  // is always caught before any component renders.
+  const spotifyReady = SpotifyPlaylistFetch.init(
+    AppConfig.SPOTIFY_CLIENT_ID,
+    redirectUri
   );
-});
+
+  spotifyReady.then(() => {
+    createRoot(document.getElementById("root")).render(
+      <StrictMode>
+        <App />
+      </StrictMode>
+    );
+  });
+}
