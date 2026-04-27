@@ -32,7 +32,7 @@ const AppConfig = {
      * If your repo has any other name (a project page), it would be:
      * https://<username>.github.io/<repo-name>
      */
-    GITHUB_PAGES_URL: "https://github.com/peachyvoid/can-bot.github.io",
+    GITHUB_PAGES_URL: "https://github.com/peachyvoid.github.io",
 
     /**
      * The URL used when running the app locally during development.
